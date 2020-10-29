@@ -1,9 +1,9 @@
 package emsmsg
 
 /*
-#cgo CFLAGS: -I../../include
-#cgo LDFLAGS: -L../../lib -ltibems
-#include "../../include/tibems/tibems.h"
+#cgo CFLAGS: -I../include
+#cgo LDFLAGS: -L../lib -ltibems
+#include "../include/tibems/tibems.h"
 
 extern void callback(tibemsMsgConsumer, tibemsMsg, void *);
 */

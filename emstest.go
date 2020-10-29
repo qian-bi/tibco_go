@@ -1,7 +1,7 @@
 package main
 
 import (
-	"emsmsg"
+	"emstest/emsmsg"
 	"fmt"
 )
 
