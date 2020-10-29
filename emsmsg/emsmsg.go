@@ -34,10 +34,10 @@ func init() {
 // CreateSession .
 func CreateSession(serverURL string, userName string, password string, debug bool) {
 	status = C.tibemsErrorContext_Create(&errorContext)
-	checkStatus(nil)
+	checkStatus()
 	factory = C.tibemsConnectionFactory_Create()
 	if factory == nil {
-		checkStatus(fmt.Errorf("Create factory Error"))
+		panic(fmt.Sprint("Create factory Error"))
 	}
 	s := C.CString(serverURL)
 	defer C.free(unsafe.Pointer(s))
@@ -46,11 +46,11 @@ func CreateSession(serverURL string, userName string, password string, debug boo
 	p := C.CString(password)
 	defer C.free(unsafe.Pointer(p))
 	status = C.tibemsConnectionFactory_SetServerURL(factory, s)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnectionFactory_CreateConnection(factory, &connection, u, p)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_CreateSession(connection, &session, C.TIBEMS_FALSE, C.TIBEMS_AUTO_ACKNOWLEDGE)
-	checkStatus(nil)
+	checkStatus()
 	_debug = debug
 	connected = true
 }
@@ -59,17 +59,17 @@ func CreateSession(serverURL string, userName string, password string, debug boo
 func CloseSession() {
 	if session != nil {
 		status = C.tibemsSession_Close(session)
-		checkStatus(nil)
+		checkStatus()
 		session = nil
 	}
 	if connection != nil {
 		status = C.tibemsConnection_Close(connection)
-		checkStatus(nil)
+		checkStatus()
 		connection = nil
 	}
 	if factory != nil {
 		status = C.tibemsConnectionFactory_Destroy(factory)
-		checkStatus(nil)
+		checkStatus()
 		factory = nil
 	}
 	if errorContext != nil {
@@ -87,17 +87,17 @@ func Producer(dest string, useTopic bool, data string, msgType string, name stri
 	checkConnection()
 	createDest(&destination, dest, useTopic)
 	status = C.tibemsSession_CreateProducer(session, &msgProducer, destination)
-	checkStatus(nil)
+	checkStatus()
 	createMsg(&msg, data, msgType, name)
 	if _debug {
 		C.tibemsMsg_Print(msg)
 	}
 	status = C.tibemsMsgProducer_Send(msgProducer, msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsg_Destroy(msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgProducer_Close(msgProducer)
-	checkStatus(nil)
+	checkStatus()
 	destroyDest(destination)
 }
 
@@ -109,16 +109,16 @@ func Consumer(dest string, useTopic bool, timeout int) string {
 	checkConnection()
 	createDest(&destination, dest, useTopic)
 	status = C.tibemsSession_CreateConsumer(session, &msgConsumer, destination, nil, C.TIBEMS_FALSE)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_Start(connection)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_ReceiveTimeout(msgConsumer, &msg, C.longlong(timeout*1000))
-	checkStatus(nil)
+	checkStatus()
 	res := getMsg(msg)
 	status = C.tibemsMsg_Destroy(msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_Close(msgConsumer)
-	checkStatus(nil)
+	checkStatus()
 	destroyDest(destination)
 	return res
 }
@@ -132,22 +132,22 @@ func Requester(dest string, useTopic bool, data string, msgType string, name str
 	checkConnection()
 	createDest(&destination, dest, useTopic)
 	status = C.tibemsMsgRequestor_Create(session, &msgRequestor, destination)
-	checkStatus(nil)
+	checkStatus()
 	createMsg(&msg, data, msgType, name)
 	if _debug {
 		C.tibemsMsg_Print(msg)
 	}
 	status = C.tibemsMsgRequestor_Request(msgRequestor, msg, &reply)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_Start(connection)
-	checkStatus(nil)
+	checkStatus()
 	res := getMsg(reply)
 	status = C.tibemsMsg_Destroy(msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsg_Destroy(reply)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgRequestor_Close(msgRequestor)
-	checkStatus(nil)
+	checkStatus()
 	destroyDest(destination)
 	return res
 }
@@ -159,11 +159,11 @@ func Listener(dest string, useTopic bool, closure func(string)) {
 	checkConnection()
 	createDest(&destination, dest, useTopic)
 	status = C.tibemsSession_CreateConsumer(session, &msgConsumer, destination, nil, C.TIBEMS_FALSE)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_SetMsgListener(msgConsumer, C.tibemsMsgCallback(C.callback), unsafe.Pointer(&closure))
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_Start(connection)
-	checkStatus(nil)
+	checkStatus()
 }
 
 // UnSubscribe .
@@ -171,7 +171,7 @@ func UnSubscribe(name string) {
 	n := C.CString(name)
 	defer C.free(unsafe.Pointer(n))
 	status = C.tibemsSession_Unsubscribe(session, n)
-	checkStatus(nil)
+	checkStatus()
 }
 
 // Subscriber .
@@ -186,16 +186,16 @@ func Subscriber(topic string, name string, selector string, timeout int) string 
 	checkConnection()
 	createDest(&destination, topic, true)
 	status = C.tibemsSession_CreateDurableSubscriber(session, (*C.tibemsTopicSubscriber)(&msgConsumer), C.tibemsTopic(destination), n, s, C.TIBEMS_FALSE)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_Start(connection)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_ReceiveTimeout(msgConsumer, &msg, C.longlong(timeout*1000))
-	checkStatus(nil)
+	checkStatus()
 	res := getMsg(msg)
 	status = C.tibemsMsg_Destroy(msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_Close(msgConsumer)
-	checkStatus(nil)
+	checkStatus()
 	destroyDest(destination)
 	return res
 }
@@ -212,16 +212,16 @@ func SharedConsumer(topic string, name string, selector string, timeout int) str
 	checkConnection()
 	createDest(&destination, topic, true)
 	status = C.tibemsSession_CreateSharedConsumer(session, &msgConsumer, C.tibemsTopic(destination), n, s)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_Start(connection)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_ReceiveTimeout(msgConsumer, &msg, C.longlong(timeout*1000))
-	checkStatus(nil)
+	checkStatus()
 	res := getMsg(msg)
 	status = C.tibemsMsg_Destroy(msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_Close(msgConsumer)
-	checkStatus(nil)
+	checkStatus()
 	destroyDest(destination)
 	return res
 }
@@ -238,24 +238,22 @@ func SharedSubscriber(topic string, name string, selector string, timeout int) s
 	checkConnection()
 	createDest(&destination, topic, true)
 	status = C.tibemsSession_CreateSharedDurableConsumer(session, &msgConsumer, C.tibemsTopic(destination), n, s)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsConnection_Start(connection)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_ReceiveTimeout(msgConsumer, &msg, C.longlong(timeout*1000))
-	checkStatus(nil)
+	checkStatus()
 	res := getMsg(msg)
 	status = C.tibemsMsg_Destroy(msg)
-	checkStatus(nil)
+	checkStatus()
 	status = C.tibemsMsgConsumer_Close(msgConsumer)
-	checkStatus(nil)
+	checkStatus()
 	destroyDest(destination)
 	return res
 }
 
-func checkStatus(err error) {
-	if err != nil {
-		panic(err.Error())
-	} else if status != C.TIBEMS_OK {
+func checkStatus() {
+	if status != C.TIBEMS_OK {
 		statusText := C.tibemsStatus_GetText(status)
 		var errMsg, errTraceback *C.char
 		C.tibemsErrorContext_GetLastErrorString(errorContext, &errMsg)
@@ -299,12 +297,12 @@ func createDest(destination *C.tibemsDestination, dest string, useTopic bool) {
 	} else {
 		status = C.tibemsDestination_Create(destination, C.TIBEMS_QUEUE, d)
 	}
-	checkStatus(nil)
+	checkStatus()
 }
 
 func destroyDest(destination C.tibemsDestination) {
 	status = C.tibemsDestination_Destroy(destination)
-	checkStatus(nil)
+	checkStatus()
 }
 
 func getMsg(msg C.tibemsMsg) string {
@@ -316,23 +314,23 @@ func getMsg(msg C.tibemsMsg) string {
 		C.tibemsMsg_Print(msg)
 	}
 	status = C.tibemsMsg_GetBodyType(msg, &msgType)
-	checkStatus(nil)
+	checkStatus()
 	switch msgType {
 	case C.TIBEMS_TEXT_MESSAGE:
 		status = C.tibemsTextMsg_GetText(msg, &txt)
-		checkStatus(nil)
+		checkStatus()
 	case C.TIBEMS_MAP_MESSAGE:
 		status = C.tibemsMapMsg_GetMapNames(msg, &enumeration)
-		checkStatus(nil)
+		checkStatus()
 		status = C.tibemsMsgEnum_GetNextName(enumeration, &name)
-		checkStatus(nil)
+		checkStatus()
 		status = C.tibemsMapMsg_GetString(msg, name, &txt)
-		checkStatus(nil)
+		checkStatus()
 		status = C.tibemsMsgEnum_Destroy(enumeration)
-		checkStatus(nil)
+		checkStatus()
 	default:
 		msgTypeName := getMsgTypeName(msgType)
-		checkStatus(fmt.Errorf("Unknown message type %s", msgTypeName))
+		panic(fmt.Sprintf("Unknown message type %s", msgTypeName))
 	}
 	return C.GoString(txt)
 }
@@ -345,14 +343,14 @@ func createMsg(msg *C.tibemsMsg, data string, msgType string, name string) {
 	switch msgType {
 	case "TEXT":
 		status = C.tibemsTextMsg_Create((*C.tibemsTextMsg)(msg))
-		checkStatus(nil)
+		checkStatus()
 		status = C.tibemsTextMsg_SetText(*msg, d)
-		checkStatus(nil)
+		checkStatus()
 	case "MAP":
 		status = C.tibemsMapMsg_Create((*C.tibemsMapMsg)(msg))
-		checkStatus(nil)
+		checkStatus()
 		status = C.tibemsMapMsg_SetString(*msg, n, d)
-		checkStatus(nil)
+		checkStatus()
 	}
 }
 
